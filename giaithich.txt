@@ -1,0 +1,208 @@
+================================================================================
+        GIẢI THÍCH THUẬT TOÁN ĐÀN ĐOM ĐÓM (FIREFLY ALGORITHM)
+================================================================================
+
+1. TỔNG QUAN BÀI TOÁN
+---------------------
+Bài toán: Tìm giá trị NHỎ NHẤT (Minimization) của hàm Sphere Function
+   - Hàm mục tiêu: f(x) = x₁² + x₂² + ... + xₙ²
+   - Không gian tìm kiếm: [-5, 5] cho mỗi chiều
+   - Số chiều: 2D (x, y) để dễ trực quan hóa
+   - Điểm tối ưu toàn cục: (0, 0) với f(0,0) = 0
+
+Mục tiêu: Tìm tọa độ (x, y) sao cho x² + y² đạt giá trị nhỏ nhất.
+
+
+2. NGUYÊN LÝ THUẬT TOÁN ĐÀN ĐOM ĐÓM
+-----------------------------------
+Thuật toán mô phỏng hành vi tìm bạn tình của đom đóm trong tự nhiên:
+
+a) Nguyên tắc cơ bản:
+   - Đom đóm sáng hơn sẽ HÚT đom đóm tối hơn
+   - Trong bài toán Min: giá trị hàm NHỎ HƠN = SÁNG HƠN (tốt hơn)
+   - Độ hấp dẫn giảm dần theo khoảng cách (vì ánh sáng bị hấp thụ)
+   - Đom đóm di chuyển ngẫu nhiên nếu không thấy con sáng hơn
+
+b) Các thành phần chính:
+   - Độ sáng (Intensity): Giá trị hàm mục tiêu f(x)
+   - Độ hấp dẫn (Attractiveness): β = β₀ * e^(-γ*r²)
+   - Khoảng cách: r = ||xᵢ - xⱼ|| (Euclid distance)
+
+
+3. CÁC THAM SỐ THUẬT TOÁN
+-------------------------
+- pop_size = 30: Số lượng đom đóm (kích thước quần thể)
+- max_gen = 50: Số vòng lặp (thế hệ) tối đa
+- alpha = 0.5: Hệ số ngẫu nhiên (Randomness) - giảm dần 0.97^t
+- beta_0 = 1.0: Độ hấp dẫn tối đa khi r=0
+- gamma = 1.0: Hệ số hấp thụ ánh sáng (Light Absorption)
+- dim = 2: Số chiều không gian tìm kiếm
+
+
+4. CẤU TRÚC CODE & CÁCH HOẠT ĐỘNG
+----------------------------------
+
+BƯỚC 1: KHỞI TẠO (Initialization)
+   ```python
+   self.fireflies = np.random.uniform(-5, 5, (30, 2))
+   ```
+   - Tạo 30 đom đóm ngẫu nhiên trong [-5, 5] x [-5, 5]
+   - Mỗi đom đóm là một điểm (x, y)
+
+BƯỚC 2: ĐÁNH GIÁ ĐỘ SÁNG (Calculate Intensity)
+   ```python
+   self.intensity[i] = self.func(self.fireflies[i])
+   ```
+   - Tính f(x, y) = x² + y² cho mỗi đom đóm
+   - Giá trị càng nhỏ = đom đóm càng sáng (tốt)
+
+BƯỚC 3: DI CHUYỂN ĐOM ĐÓM (Movement) - Vòng lặp chính
+   Với mỗi cặp (i, j):
+   
+   a) Kiểm tra điều kiện:
+      if intensity[j] < intensity[i]:  # j sáng hơn i
+   
+   b) Tính khoảng cách:
+      r = ||firefly[i] - firefly[j]||
+   
+   c) Tính độ hấp dẫn:
+      β = β₀ * e^(-γ*r²)
+      - Khi r=0: β = β₀ = 1.0 (hấp dẫn tối đa)
+      - Khi r tăng: β giảm mũ (hấp dẫn yếu dần)
+   
+   d) Cập nhật vị trí (Công thức cốt lõi):
+      x_new = x_old + β*(x_j - x_i) + α*(random - 0.5)
+               ↑           ↑              ↑
+             vị trí cũ   hấp dẫn      ngẫu nhiên
+      
+      - Thành phần 1: Giữ nguyên vị trí cũ
+      - Thành phần 2: Di chuyển về phía đom đóm sáng hơn (tỷ lệ β)
+      - Thành phần 3: Thêm yếu tố khám phá ngẫu nhiên
+   
+   e) Chấp nhận di chuyển:
+      if f(x_new) < f(x_old):  # Vị trí mới tốt hơn
+          Cập nhật vị trí
+
+BƯỚC 4: GIẢM HỆ SỐ NGẪU NHIÊN
+   ```python
+   self.alpha *= 0.97
+   ```
+   - Ban đầu: khám phá rộng (α lớn)
+   - Dần dần: khai thác sâu (α giảm) → hội tụ
+
+BƯỚC 5: LẶP LẠI cho đến khi đạt max_gen = 50 vòng
+
+
+5. LUỒNG THỰC THI CODE (EXECUTION FLOW)
+----------------------------------------
+main()
+  └─> Tạo đối tượng FireflyAlgorithm
+       └─> Khởi tạo 30 đom đóm ngẫu nhiên
+  
+  └─> fa.run()
+       ├─> calculate_intensity() - Đánh giá ban đầu
+       │
+       ├─> for t in range(50):  # 50 thế hệ
+       │    │
+       │    ├─> for i in range(30):      # Vòng lặp đom đóm i
+       │    │    └─> for j in range(30):  # So sánh với j
+       │    │         │
+       │    │         ├─> if j sáng hơn i:
+       │    │         │    ├─> Tính r, β
+       │    │         │    ├─> Cập nhật vị trí i
+       │    │         │    └─> Chấp nhận nếu tốt hơn
+       │    │
+       │    └─> alpha *= 0.97  # Giảm ngẫu nhiên
+       │
+       └─> Trả về best_pos, best_score, history
+
+  └─> In kết quả & Vẽ biểu đồ
+
+
+6. KẾT QUẢ MONG ĐỢI
+--------------------
+Sau 50 vòng lặp, thuật toán nên tìm được:
+   - Vị trí: (x, y) ≈ (0.0000, 0.0000)
+   - Giá trị: f(x, y) ≈ 0.0000000000
+
+Biểu đồ 1: Đường cong hội tụ từ giá trị cao xuống gần 0
+Biểu đồ 2: Các đom đóm tập trung xung quanh điểm (0, 0)
+
+
+7. CÁCH CHẠY CODE
+-----------------
+**Yêu cầu hệ thống:**
+   - Python 3.x
+   - Thư viện: numpy, matplotlib
+
+**Các bước thực hiện:**
+
+   Bước 1: Cài đặt thư viện (nếu chưa có)
+   ```
+   pip install numpy matplotlib
+   ```
+
+   Bước 2: Chạy file
+   ```
+   python baitoandemo.py
+   ```
+   Hoặc trong VS Code: Nhấn F5 hoặc nút Run
+
+   Bước 3: Xem output
+   - Terminal hiển thị quá trình tìm kiếm:
+     * Khởi tạo: Best Value = ...
+     * Gen 0, 10, 20, ... : Best Value = ...
+     * KẾT QUẢ CUỐI CÙNG: Vị trí tối ưu và giá trị
+   
+   - Cửa sổ matplotlib hiện 2 biểu đồ:
+     * Biểu đồ trái: Quá trình hội tụ
+     * Biểu đồ phải: Phân bố đom đóm trên mặt phẳng 2D
+
+
+8. ĐIỀU CHỈNH & TÙY BIẾN
+-------------------------
+Để thử nghiệm với cấu hình khác, sửa dòng 95:
+   ```python
+   fa = FireflyAlgorithm(
+       func=sphere_function,
+       dim=2,          # Thay đổi số chiều (2-10)
+       pop_size=30,    # Số đom đóm (10-100)
+       max_gen=50,     # Số vòng lặp (20-200)
+       alpha=0.5,      # Độ ngẫu nhiên (0.1-1.0)
+       beta_0=1.0,     # Độ hấp dẫn (0.5-2.0)
+       gamma=1.0       # Hấp thụ ánh sáng (0.01-10)
+   )
+   ```
+
+Để thử hàm khác, định nghĩa hàm mới:
+   ```python
+   def rastrigin(x):
+       return 10*len(x) + np.sum(x**2 - 10*np.cos(2*np.pi*x))
+   ```
+
+
+9. ƯU ĐIỂM & HẠN CHẾ
+---------------------
+Ưu điểm:
+   ✓ Đơn giản, dễ hiểu và cài đặt
+   ✓ Không cần đạo hàm của hàm mục tiêu
+   ✓ Tự động cân bằng khám phá (exploration) và khai thác (exploitation)
+   ✓ Hiệu quả với bài toán liên tục đa chiều
+
+Hạn chế:
+   ✗ Độ phức tạp O(n²) do vòng lặp kép (i, j)
+   ✗ Cần điều chỉnh tham số cho từng bài toán
+   ✗ Có thể bị kẹt ở local minimum nếu gamma quá lớn
+
+
+10. TÓM TẮT CÔNG THỨC QUAN TRỌNG
+---------------------------------
+1. Độ sáng:       I = f(x)
+2. Độ hấp dẫn:    β = β₀ * e^(-γ*r²)
+3. Khoảng cách:   r = ||xᵢ - xⱼ||
+4. Cập nhật vị trí: xᵢ(t+1) = xᵢ(t) + β*(xⱼ - xᵢ) + α*(rand - 0.5)
+5. Giảm ngẫu nhiên: α(t+1) = α(t) * 0.97
+
+================================================================================
+                              KẾT THÚC GIẢI THÍCH
+================================================================================
